@@ -7,10 +7,6 @@ module LightControl
     using .MathFunctions
 
     using Interpolations
-
-    function gaussian(r, r0, s)
-        return exp(-0.5 * ((r - r0) / s)^2)
-    end
     
     function spaceFunc(r, r0, s)
         return 0.5 * (1 - tanh((r - r0) / s))

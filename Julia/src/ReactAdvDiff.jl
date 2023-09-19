@@ -36,8 +36,11 @@ module ReactAdvDiff
         kAUnbind::Real 
         beta::Real  
         CSat::Real 
-        function ChemParams(kAct, kInact, kTrap, kRel, kIBind, kIUnbind, kABind, kAUnbind, beta, CSat)
-            return new(kAct, kInact, kTrap, kRel, kIBind, kIUnbind, kABind, kAUnbind, beta, CSat)
+        DT::Real 
+        DD::Real
+        DC::Real
+        function ChemParams(kAct, kInact, kTrap, kRel, kIBind, kIUnbind, kABind, kAUnbind, beta, CSat, DT, DD, DC)
+            return new(kAct, kInact, kTrap, kRel, kIBind, kIUnbind, kABind, kAUnbind, beta, CSat, DT, DD, DC)
         end
     end
 

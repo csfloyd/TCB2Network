@@ -1,16 +1,12 @@
-CCytVec = vcat([0], (10).^(range(4,stop=9,length=6)))
-etaCytVec = vcat([0], (10).^(range(0,stop=5,length=6)))
+ustVec = [-0.4, -0.2, 0.0, 0.2, 0.4]
 
-k0Vec = [0.2, 0.4, 0.6, 0.8, 1.0, 2.5, 5.0]
-etaVec = [0.001, 0.01, 0.05, 0.1, 0.15, 0.2, 1.0]
 
 trialParamDict = Dict(
-"AA" => AAVec
-#"K0" => K0Vec
+"ust" => ustVec
 )
 
-global baseDir = "/project/svaikunt/csfloyd/CatchHopfield/"
-global Dirs = baseDir * "Dirs/Dirs_OI_AA_pbc_TG/"
+global baseDir = "/project/svaikunt/csfloyd/RLTCB2/"
+global Dirs = baseDir * "Dirs/Dirs_ust/"
 
 function ReplaceBatchRunDelete(batchFile, inputFile, outputDir)
     f = open(batchFile)

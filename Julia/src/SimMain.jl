@@ -45,15 +45,10 @@ module SimMain
         global bcRAD_X = parameters["bcRAD_X"] # RAD condition in x direction
         global bcRAD_Y = parameters["bcRAD_Y"] # RAD condition in y direction
 
-
         ### chem params
         cP = ReactAdvDiff.ChemParams(parameters["kAct"], parameters["kInact"], parameters["kTrap"], parameters["kRel"], 
             parameters["kIBind"], parameters["kIUnbind"], parameters["kABind"], parameters["kAUnbind"], 
-            parameters["beta"], parameters["CSat"])
-
-        global DT = parameters["DT"]
-        global DD = parameters["DD"]
-        global DC = parameters["DC"]
+            parameters["beta"], parameters["CSat"], parameters["DT"], parameters["DD"], parameters["DC"])
 
         ### mech params
         mP = Mechanics.MechParams(parameters["mu0"], parameters["lambda0"], parameters["gMin"])
@@ -130,13 +125,13 @@ module SimMain
             end
 
             # Update concentrations
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CDISoA, cFN, gammaSoA, ReactAdvDiff.RDI, cP, DT, dt, bcRAD_X, bcRAD_Y, rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CDASoA, cFN, gammaSoA, ReactAdvDiff.RDA, cP, DT, dt, bcRAD_X, bcRAD_Y, rDomain)
+            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CDISoA, cFN, gammaSoA, ReactAdvDiff.RDI, cP, cP.DT, dt, bcRAD_X, bcRAD_Y, rDomain)
+            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CDASoA, cFN, gammaSoA, ReactAdvDiff.RDA, cP, cP.DT, dt, bcRAD_X, bcRAD_Y, rDomain)
             ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CBISoA, cFN, gammaSoA, ReactAdvDiff.RBI, cP, 0, dt, bcRAD_X, bcRAD_Y, rDomain)
             ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CBASoA, cFN, gammaSoA, ReactAdvDiff.RBA, cP, 0, dt, bcRAD_X, bcRAD_Y, rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CCSoA, cFN, gammaSoA, ReactAdvDiff.RC, cP, DC, dt, bcRAD_X, bcRAD_Y, rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CDSoA, cFN, gammaSoA, ReactAdvDiff.RD, cP, DD, dt, bcRAD_X, bcRAD_Y, rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CDstSoA, cFN, gammaSoA, ReactAdvDiff.RDst, cP, DD, dt, bcRAD_X, bcRAD_Y, rDomain)
+            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CCSoA, cFN, gammaSoA, ReactAdvDiff.RC, cP, cP.DC, dt, bcRAD_X, bcRAD_Y, rDomain)
+            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CDSoA, cFN, gammaSoA, ReactAdvDiff.RD, cP, cP.DD, dt, bcRAD_X, bcRAD_Y, rDomain)
+            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CDstSoA, cFN, gammaSoA, ReactAdvDiff.RDst, cP, cP.DD, dt, bcRAD_X, bcRAD_Y, rDomain)
 
             # Update displacements
             Mechanics.PredictorCorrectorStepDispSoA!(grid, domainType, dF, cFN.CBASoA, cFN.CBISoA, mP, dt, bcU_X, bcU_Y, rDomain)

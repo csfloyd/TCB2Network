@@ -61,22 +61,24 @@ module SimMainRL
         cF::Any # concFields
         dF::Any # dispFields
         gammaSoA::Any # light Field
+        lastdF::Any
 
         function SimState(
             cF,
             dF, 
             gammaSoA)
 
-            return new(cF, dF, gammaSoA)
+            return new(cF, dF, gammaSoA, deepcopy(dF))
         end
     end
 
     struct RewardParams
         ust::Real 
         rst::Real
+        ks::Real
 
-        function RewardParams(ust, rst)
-            return new(ust, rst)
+        function RewardParams(ust, rst, ks)
+            return new(ust, rst, ks)
         end
     end
 
@@ -107,8 +109,8 @@ module SimMainRL
 
     function SimStep!(sS, sP) # integrates for ndt and updates the fields in sS
 
-        # sS.lastAgentHandler = deepcopy(sS.agentHandler) # copy previous defect positions to integrate the force law for the reward
-
+        sS.lastdF = deepcopy(sS.dF)
+        
         for t in 1:sP.ndt
 
             # Copy down data to use for the updates of various fields, so that the order of updates doesn't matter
@@ -116,13 +118,13 @@ module SimMainRL
             dFN = deepcopy(sS.dF)
             
             # Update concentrations
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(sP.grid, sP.domainType, sS.cF.CDISoA, cFN, sS.gammaSoA, ReactAdvDiff.RDI, sP.cP, sP.cP.DT, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(sP.grid, sP.domainType, sS.cF.CDASoA, cFN, sS.gammaSoA, ReactAdvDiff.RDA, sP.cP, sP.cP.DT, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(sP.grid, sP.domainType, sS.cF.CBISoA, cFN, sS.gammaSoA, ReactAdvDiff.RBI, sP.cP, 0, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(sP.grid, sP.domainType, sS.cF.CBASoA, cFN, sS.gammaSoA, ReactAdvDiff.RBA, sP.cP, 0, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(sP.grid, sP.domainType, sS.cF.CCSoA, cFN, sS.gammaSoA, ReactAdvDiff.RC, sP.cP, sP.cP.DC, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(sP.grid, sP.domainType, sS.cF.CDSoA, cFN, sS.gammaSoA, ReactAdvDiff.RD, sP.cP, sP.cP.DD, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(sP.grid, sP.domainType, sS.cF.CDstSoA, cFN, sS.gammaSoA, ReactAdvDiff.RDst, sP.cP, sP.cP.DD, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
+            ReactAdvDiff.PredictorCorrectorStepRADCylSoA!(sP.grid, sP.domainType, sS.cF.CDISoA, cFN, sS.gammaSoA, ReactAdvDiff.RDI, sP.cP, sP.cP.DT, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
+            ReactAdvDiff.PredictorCorrectorStepRADCylSoA!(sP.grid, sP.domainType, sS.cF.CDASoA, cFN, sS.gammaSoA, ReactAdvDiff.RDA, sP.cP, sP.cP.DT, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
+            ReactAdvDiff.PredictorCorrectorStepRADCylSoA!(sP.grid, sP.domainType, sS.cF.CBISoA, cFN, sS.gammaSoA, ReactAdvDiff.RBI, sP.cP, 0, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
+            ReactAdvDiff.PredictorCorrectorStepRADCylSoA!(sP.grid, sP.domainType, sS.cF.CBASoA, cFN, sS.gammaSoA, ReactAdvDiff.RBA, sP.cP, 0, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
+            ReactAdvDiff.PredictorCorrectorStepRADCylSoA!(sP.grid, sP.domainType, sS.cF.CCSoA, cFN, sS.gammaSoA, ReactAdvDiff.RC, sP.cP, sP.cP.DC, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
+            ReactAdvDiff.PredictorCorrectorStepRADCylSoA!(sP.grid, sP.domainType, sS.cF.CDSoA, cFN, sS.gammaSoA, ReactAdvDiff.RD, sP.cP, sP.cP.DD, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
+            ReactAdvDiff.PredictorCorrectorStepRADCylSoA!(sP.grid, sP.domainType, sS.cF.CDstSoA, cFN, sS.gammaSoA, ReactAdvDiff.RDst, sP.cP, sP.cP.DD, sP.dt, sP.bcRAD_X, sP.bcRAD_Y, sP.rDomain)
 
             # Update displacements
             Mechanics.PredictorCorrectorStepDispSoA!(sP.grid, sP.domainType, sS.dF, cFN.CBASoA, cFN.CBISoA, sP.mP, sP.dt, sP.bcU_X, sP.bcU_Y, sP.rDomain)

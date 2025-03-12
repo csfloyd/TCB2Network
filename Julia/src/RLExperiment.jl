@@ -36,6 +36,8 @@ Base.@kwdef mutable struct RLTCB2Hook <: AbstractHook
     stateTrajList::Vector{Any} = []
     actorLossList::Vector{Real} = []
     criticLossList::Vector{Real} = []
+    annealBool::Bool = false
+    annealTime::Real = 100
 
     storingBool::Bool = true # track whether to store episodeInformation during current episode
     stateTrajBool::Bool = true # track whether to store stateTrajectory during current episode
@@ -54,6 +56,12 @@ function (hook::RLTCB2Hook)(::PostActStage, agent, env)
     if hook.stateTrajBool && (hook.stepCount % hook.stepStride == 0)
         push!(hook.stateTrajList[end], deepcopy(env.sS))
     end 
+
+    if hook.annealBool 
+        agent.policy.act_noise *= (1 - 1 / hook.annealTime)
+        agent.policy.act_noise *= (1 - 1 / hook.annealTime)
+    end 
+
     hook.stepCount += 1
 end
 
@@ -102,7 +110,8 @@ function CreateDDPGExperiment(env; # works for toy or the full RL env
     act_limit = 1.0,
     act_noise = 1e-3,
     annealBool = false,
-    annealTime = 100
+    annealTime = 100,
+    adamRate = 1e-4
     )
     
     rng = env.rng
@@ -129,13 +138,13 @@ function CreateDDPGExperiment(env; # works for toy or the full RL env
         policy = DDPGPolicy(
             behavior_actor = NeuralNetworkApproximator(
                 model = create_actor(),
-                #optimizer = ADAM(),
-                optimizer = Flux.Optimise.Optimiser(ClipNorm(0.5), ADAM(5e-4)),
+		#optimizer = Flux.Optimise.Optimiser(ADAM(5e-5)),
+                optimizer = Flux.Optimise.Optimiser(ClipNorm(0.5), ADAM(adamRate)),
             ),
             behavior_critic = NeuralNetworkApproximator(
                 model = create_critic(),
-                #optimizer = ADAM(),
-                optimizer = Flux.Optimise.Optimiser(ClipNorm(0.5), ADAM(5e-4)),
+		#optimizer = Flux.Optimise.Optimiser(ADAM(5e-5)),
+                optimizer = Flux.Optimise.Optimiser(ClipNorm(0.5), ADAM(adamRate)),
             ),
             target_actor = NeuralNetworkApproximator(
                 model = create_actor(),
@@ -175,7 +184,8 @@ function CreateDDPGExperiment(env; # works for toy or the full RL env
     end
 
 
-    hook = RLTCB2Hook(stepStride = stepStride, episodeStride = episodeStride, stateTrajStride = stateTrajStride)
+    hook = RLTCB2Hook(stepStride = stepStride, episodeStride = episodeStride, stateTrajStride = stateTrajStride, 
+        annealBool = annealBool, annealTime = annealTime)
     tagline = "# TCB2 RL with DDPG"
 
     Experiment(agent, env, stop_condition, hook, tagline)
@@ -217,7 +227,7 @@ function InitializeAndRunExperiment(parameters)
     global ndt = parameters["ndt"]
     global timeStride = parameters["timeStride"] # save every timeStride frames
     global startCollecting = parameters["startCollecting"]
-    global seed = parameters["seed"] # random seed - will use this if this it is not zero
+    global seed = Int(floor(parameters["seed"])) # random seed - will use this if this it is not zero
 
     ### Boundary conditions
     # BE conditions
@@ -250,8 +260,9 @@ function InitializeAndRunExperiment(parameters)
     ## parameters of the imposed force law 
     global rst = parameters["rst"] # stiffness times the drag
     global ust = parameters["ust"] # equilibrium separation
+    global ks = parameters["ks"]
 
-    rP = SimMainRL.RewardParams(ust, rst)
+    rP = SimMainRL.RewardParams(ust, rst, ks)
 
     ## parameters of the Environment object
     global nSteps = parameters["nSteps"] # number of steps in one episode
@@ -273,6 +284,7 @@ function InitializeAndRunExperiment(parameters)
     global netWidth = parameters["netWidth"] # width of hidden layers in the neural networks
     global gamma = parameters["gamma"] # discount factor
     global rho = parameters["rho"] # soft update factor
+    global adamRate = parameters["adamRate"]
     global act_limit = parameters["act_limit"] # clamp on NN action output
     global act_noise = parameters["act_noise"] # action noise scale
     global annealBool = parameters["annealBool"] # whether to anneal the noise in activity
@@ -281,7 +293,7 @@ function InitializeAndRunExperiment(parameters)
     ex = CreateDDPGExperiment(env; seed = seed, eps_or_hrs = eps_or_hrs, nEpisodes = nEpisodes, 
         stepStride = stepStride, episodeStride = episodeStride, stateTrajStride = stateTrajStride, 
         batchSize = batchSize, updateFreq = updateFreq, netLayers = netLayers, netWidth = netWidth, 
-        gamma = gamma, rho = rho, act_limit = act_limit, act_noise = act_noise, annealBool = annealBool, annealTime = annealTime)
+        gamma = gamma, rho = rho, act_limit = act_limit, act_noise = act_noise, annealBool = annealBool, annealTime = annealTime, adamRate = adamRate)
 
     ###########################################
     ### Run the experiment and save results ###

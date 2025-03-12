@@ -25,9 +25,9 @@ module SimMain
         # General params
         global domainType = parameters["domainType"]
         global Nx = parameters["Nx"] 
-        if domainType == "2D"
+        if (domainType == "2D") || (domainType == "rz")
             global Ny = parameters["Ny"]
-        else
+        else # case cyl
             global Ny = 1
         end
         global dx = parameters["dx"] # set to 1
@@ -36,6 +36,7 @@ module SimMain
         global timeStride = parameters["timeStride"] # save every timeStride frames
         global startCollecting = parameters["startCollecting"]
         global seed = parameters["seed"] # random seed - will use this if this it is not zero
+        global chemOnly = parameters["chemOnly"]
 
         ### Boundary conditions
         # BE conditions
@@ -86,7 +87,22 @@ module SimMain
         dF = Mechanics.DispFields(uxSoA, uySoA)
 
         ### get light protocol
-        iFun = LightControl.getiFun(parameters["cyc"], parameters["len"], parameters["del"], parameters["nSteps"] * parameters["dt"])
+	    lenFac = parameters["cyc"] / 30.0
+	    len = parameters["len"] * lenFac
+        #iFun = LightControl.getiFun(parameters["cyc"], parameters["len"], parameters["del"], parameters["nSteps"] * parameters["dt"])
+	    iFun = LightControl.getiFun(parameters["cyc"] + len, len, parameters["del"], parameters["nSteps"] * parameters["dt"])
+        
+        if parameters["domainType"] == "cyl"
+            gammaSoABase = LightControl.gammaSoAFuncCyl(grid, parameters["r0"], parameters["width"], 1)
+        elseif parameters["domainType"] == "rz"
+            gammaSoABase = LightControl.gammaSoAFuncrz(grid, parameters["r0"], parameters["width"], parameters["zWidth"], 1)
+        else
+            if parameters["starBool"]
+                gammaSoABase = LightControl.GetStarSoA(grid, parameters["r0"], parameters["width"])
+            else
+                gammaSoABase = LightControl.gammaSoAFunc2D(grid, parameters["r0"], parameters["width"], 1)
+            end
+        end
 
         println("Done initializing.")
 
@@ -109,32 +125,37 @@ module SimMain
             cFN = deepcopy(cF)
             dFN = deepcopy(dF)
 
-	        #GC.gc()
+	    if (t%100 == 0)
+	    	    GC.gc()
+            end
 
             # Push to the saved data if at multiple of timeStride
             if ((t == 1) || (t % timeStride == 0)) && (t > startCollecting)
+	        #GC.gc()
                 push!(cFArray, cFN)
                 push!(dFArray, dFN)
             end
 
             # update gamma
-            if parameters["domainType"] == "cyl"
-                gammaSoA = LightControl.gammaSoAFuncCyl(grid, parameters["r0"], parameters["width"], iFun(dt * t))
-            else
-                gammaSoA = LightControl.gammaSoAFunc2D(grid, parameters["r0"], parameters["width"], iFun(dt * t))
+            if parameters["movingCircle"][1]
+                gammaSoA = LightControl.GetMovingCircleSoA(grid, parameters["movingCircle"][2], parameters["r0"], parameters["width"], dt*(t-1), parameters["movingCircle"][3])
+            else 
+                gammaSoA = MultiplyScalarSoA2D(grid, gammaSoABase, iFun(dt * (t-1)))
             end
-
+    
             # Update concentrations
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CDISoA, cFN, gammaSoA, ReactAdvDiff.RDI, cP, cP.DT, dt, bcRAD_X, bcRAD_Y, rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CDASoA, cFN, gammaSoA, ReactAdvDiff.RDA, cP, cP.DT, dt, bcRAD_X, bcRAD_Y, rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CBISoA, cFN, gammaSoA, ReactAdvDiff.RBI, cP, 0, dt, bcRAD_X, bcRAD_Y, rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CBASoA, cFN, gammaSoA, ReactAdvDiff.RBA, cP, 0, dt, bcRAD_X, bcRAD_Y, rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CCSoA, cFN, gammaSoA, ReactAdvDiff.RC, cP, cP.DC, dt, bcRAD_X, bcRAD_Y, rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CDSoA, cFN, gammaSoA, ReactAdvDiff.RD, cP, cP.DD, dt, bcRAD_X, bcRAD_Y, rDomain)
-            ReactAdvDiff.PredictorCorrectorStepRADSoA!(grid, domainType, cF.CDstSoA, cFN, gammaSoA, ReactAdvDiff.RDst, cP, cP.DD, dt, bcRAD_X, bcRAD_Y, rDomain)
+            ReactAdvDiff.PredictorCorrectorStepCasesRADSoA!(grid, domainType, cF.CDISoA, cFN, gammaSoA, ReactAdvDiff.RDI, cP, cP.DT, dt, bcRAD_X, bcRAD_Y, rDomain)
+            ReactAdvDiff.PredictorCorrectorStepCasesRADSoA!(grid, domainType, cF.CDASoA, cFN, gammaSoA, ReactAdvDiff.RDA, cP, cP.DT, dt, bcRAD_X, bcRAD_Y, rDomain)
+            ReactAdvDiff.PredictorCorrectorStepCasesRADSoA!(grid, domainType, cF.CBISoA, cFN, gammaSoA, ReactAdvDiff.RBI, cP, 0, dt, bcRAD_X, bcRAD_Y, rDomain)
+            ReactAdvDiff.PredictorCorrectorStepCasesRADSoA!(grid, domainType, cF.CBASoA, cFN, gammaSoA, ReactAdvDiff.RBA, cP, 0, dt, bcRAD_X, bcRAD_Y, rDomain)
+            ReactAdvDiff.PredictorCorrectorStepCasesRADSoA!(grid, domainType, cF.CCSoA, cFN, gammaSoA, ReactAdvDiff.RC, cP, cP.DC, dt, bcRAD_X, bcRAD_Y, rDomain)
+            ReactAdvDiff.PredictorCorrectorStepCasesRADSoA!(grid, domainType, cF.CDSoA, cFN, gammaSoA, ReactAdvDiff.RD, cP, cP.DD, dt, bcRAD_X, bcRAD_Y, rDomain)
+            ReactAdvDiff.PredictorCorrectorStepCasesRADSoA!(grid, domainType, cF.CDstSoA, cFN, gammaSoA, ReactAdvDiff.RDst, cP, cP.DD, dt, bcRAD_X, bcRAD_Y, rDomain)
 
-            # Update displacements
-            Mechanics.PredictorCorrectorStepDispSoA!(grid, domainType, dF, cFN.CBASoA, cFN.CBISoA, mP, dt, bcU_X, bcU_Y, rDomain)
+            if !chemOnly
+                # Update displacements
+                Mechanics.PredictorCorrectorStepDispSoA!(grid, domainType, dF, cFN.CBASoA, cFN.CBISoA, mP, dt, bcU_X, bcU_Y, rDomain)
+            end
 
         end
         println("Done with simulation.")

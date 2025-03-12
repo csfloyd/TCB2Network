@@ -23,7 +23,7 @@ module Mechanics
         end
     end
 
-    pAFunc(CBASoA, CBISoA) =  CBASoA.Values ./ (CBASoA.Values .+ CBISoA.Values)
+    pAFunc(CBASoA, CBISoA) =  CBASoA.Values ./ (CBASoA.Values .+ CBISoA.Values .+ 1e-2)
 
     gFunc(pA, gMin) = -(1 - gMin) .* pA
 
@@ -47,10 +47,11 @@ module Mechanics
     function gradgFuncCyl(grid, CBASoA, CBISoA, gMin, bcx, bcy)
         bcDerivX = BCDerivDict[bcx]
 
+        eps = 1e-6
         pA = pAFunc(CBASoA, CBISoA)
-        pref = (gMin - 1) ./ (CBASoA.Values .+ CBISoA.Values)
-        dCBA = bcDerivX(CBASoA.Values, FiniteDifferenceCyl) ./ (2.0 * grid.dx)
-        dCBI = bcDerivX(CBISoA.Values, FiniteDifferenceCyl) ./ (2.0 * grid.dx)
+        pref = (gMin - 1) ./ (CBASoA.Values .+ CBISoA.Values .+ eps)
+        dCBA = bcDerivX(CBASoA.Values .+ eps, FiniteDifferenceCyl) ./ (2.0 * grid.dx)
+        dCBI = bcDerivX(CBISoA.Values .+ eps, FiniteDifferenceCyl) ./ (2.0 * grid.dx)
 
         dg = pref .* ((1 .- pA) .* dCBA .- pA .* dCBI)
 
@@ -108,8 +109,10 @@ module Mechanics
         bcDerivY = BCDerivDict[bcy]
         dF = dispFields
 
-        CB = CBASoA.Values .+ CBISoA.Values
-        pA = CBASoA.Values ./ CB
+        eps = 1e-6
+
+        CB = CBASoA.Values .+ CBISoA.Values .+ eps
+        pA = CBASoA.Values ./ (CB)
         g = gFunc(pA, mechParams.gMin)
         dg = gradgFuncCyl(grid, CBASoA, CBISoA, mechParams.gMin, bcx, bcy)
 

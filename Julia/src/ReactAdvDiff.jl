@@ -85,13 +85,43 @@ module ReactAdvDiff
         return ScalarSoA2D(D .* (bcDerivX(phiSoA.Values, FiniteSecondDifferenceCyl) ./ (grid.dx^2) .+ bcDerivX(phiSoA.Values, FiniteDifferenceCyl) ./ (2.0 .* grid.dx .* rDomain)))
     end
 
-    function PredictorCorrectorStepRADSoA!(grid, domainType, phiSoA, concFields, gammaSoA, reactionFunc, chemParams, D, dt, bcx, bcy, rDomain = [])
+    function DiffTermrz(grid, rDomain, phiSoA, D, bcDerivX, bcDerivY)
+        return ScalarSoA2D(D .* (bcDerivX(phiSoA.Values, FiniteSecondDifferenceCyl) ./ (grid.dx^2) .+ bcDerivX(phiSoA.Values, FiniteDifferenceCyl) ./ (2.0 .* grid.dx .* rDomain) .+ bcDerivY(phiSoA.Values, FiniteSecondDifferenceY) ./ (grid.dx^2)))
+    end
+
+    function PredictorCorrectorStepCasesRADSoA!(grid, domainType, phiSoA, concFields, gammaSoA, reactionFunc, chemParams, D, dt, bcx, bcy, rDomain = [])
         if domainType == "2D"
             PredictorCorrectorStepRAD2DSoA!(grid, domainType, phiSoA, concFields, gammaSoA, reactionFunc, chemParams, D, dt, bcx, bcy)
-        else 
+        elseif domainType == "rz"
+            PredictorCorrectorStepRADrzSoA!(grid, domainType, phiSoA, concFields, gammaSoA, reactionFunc, chemParams, D, dt, bcx, bcy, rDomain)
+        else ## case cyl 
             PredictorCorrectorStepRADCylSoA!(grid, domainType, phiSoA, concFields, gammaSoA, reactionFunc, chemParams, D, dt, bcx, bcy, rDomain)
         end
         
+    end
+
+    function PredictorCorrectorStepRADrzSoA!(grid, domainType, phiSoA, concFields, gammaSoA, reactionFunc, chemParams, D, dt, bcx, bcy, rDomain)
+
+        bcDerivX = BCDerivDict[bcx]
+        bcDerivY = BCDerivDict[bcy]
+        b = GetBoundariesFromConditions(grid, bcx, bcy)
+
+        predPhiSoA = deepcopy(phiSoA)
+
+        rhs1 = ScalarSoA2D(reactionFunc(predPhiSoA, concFields, gammaSoA, chemParams)) 
+        if D != 0
+            diffSoA = DiffTermrz(grid, rDomain, predPhiSoA, D, bcDerivX, bcDerivY)
+            AddScalarSoA2D!(rhs1, diffSoA)
+        end
+        predPhiSoA.Values[b[1]:b[2],b[3]:b[4]] .= predPhiSoA.Values[b[1]:b[2],b[3]:b[4]] .+ dt .* rhs1.Values[b[1]:b[2],b[3]:b[4]]
+
+        rhs2 = ScalarSoA2D(reactionFunc(predPhiSoA, concFields, gammaSoA, chemParams)) 
+        if D != 0
+            diffSoA = DiffTermrz(grid, rDomain, predPhiSoA, D, bcDerivX, bcDerivY)
+            AddScalarSoA2D!(rhs2, diffSoA)
+        end
+
+        phiSoA.Values[b[1]:b[2],b[3]:b[4]] .= phiSoA.Values[b[1]:b[2],b[3]:b[4]] .+ (0.5 .* dt .* (rhs1.Values[b[1]:b[2],b[3]:b[4]] .+ rhs2.Values[b[1]:b[2],b[3]:b[4]]))
     end
 
     function PredictorCorrectorStepRAD2DSoA!(grid, domainType, phiSoA, concFields, gammaSoA, reactionFunc, chemParams, D, dt, bcx, bcy)
@@ -139,7 +169,7 @@ module ReactAdvDiff
             AddScalarSoA2D!(rhs2, diffSoA)
         end
 
-        phiSoA.Values[b[1]:b[2],1] .= phiSoA.Values[b[1]:b[2],1] .+ (0.5 .* dt .* (rhs1.Values[b[1]:b[2],1] .+ rhs2.Values[b[1]:b[2],b[3]:b[4]]))
+        phiSoA.Values[b[1]:b[2],1] .= phiSoA.Values[b[1]:b[2],1] .+ (0.5 .* dt .* (rhs1.Values[b[1]:b[2],1] .+ rhs2.Values[b[1]:b[2],1]))
     end
 
 end

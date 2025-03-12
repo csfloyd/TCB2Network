@@ -31,14 +31,14 @@ module MathFunctions
     AddVectorSoA2D, AddVectorSoA2D!,
     AddTensorSoA2D, AddTensorSoA2D!,
     SubtractTensorSoA2D, SubtractTensorSoA2D!,
-    MultipyScalarSoA2D, MultipyVectorSoA2D,
-    MultipyVectorByScalarSoA2D, MultipyVectorByScalarSoA2D!,
-    MultipyTensorSoA2D, MultipyLargeTensorSoA2D,
-    MultipyTensorByScalarSoA2D,
-    MultipyScalarSoA2D!, MultipyVectorSoA2D!,
-    MultipyTensorSoA2D!, MultipyLargeTensorSoA2D!,
-    MultipyLargeTensorByScalarSoA2D!,
-    MultipyTensorByScalarSoA2D!,
+    MultiplyScalarSoA2D, MultiplyVectorSoA2D,
+    MultiplyVectorByScalarSoA2D, MultiplyVectorByScalarSoA2D!,
+    MultiplyTensorSoA2D, MultiplyLargeTensorSoA2D,
+    MultiplyTensorByScalarSoA2D,
+    MultiplyScalarSoA2D!, MultiplyVectorSoA2D!,
+    MultiplyTensorSoA2D!, MultiplyLargeTensorSoA2D!,
+    MultiplyLargeTensorByScalarSoA2D!,
+    MultiplyTensorByScalarSoA2D!,
     SetScalarFromSoA2D!, SetVectorFromSoA2D!,
     SetTensorFromSoA2D!, SetLargeTensorFromSoA2D!,
     ConvertVectorSoAToMesh2D, ConvertVectorMeshToSoA2D,
@@ -350,29 +350,29 @@ module MathFunctions
         tSoA.YYValues .= tSoA.YYValues .- tSoAO.YYValues
     end
 
-    function MultipyScalarSoA2D(grid, sSoAO, a)
+    function MultiplyScalarSoA2D(grid, sSoAO, a)
         Values = sSoAO.Values .* a
         return ScalarSoA2D(Values)
     end
 
-    function MultipyVectorSoA2D(grid, vSoAO, a)
+    function MultiplyVectorSoA2D(grid, vSoAO, a)
         XValues = vSoAO.XValues .* a
         YValues = vSoAO.YValues .* a
         return VectorSoA2D(XValues, YValues)
     end
 
-    function MultipyVectorByScalarSoA2D(grid, vSoA, sSoA) # multiplies a vector field by a scalar field
+    function MultiplyVectorByScalarSoA2D(grid, vSoA, sSoA) # multiplies a vector field by a scalar field
         XValues = vSoA.XValues .* sSoA.Values
         YValues = vSoA.YValues .* sSoA.Values
         return VectorSoA2D(XValues, YValues)
     end
 
-    function MultipyVectorByScalarSoA2D!(vSoA, sSoA) # multiplies a vector field by a scalar field
+    function MultiplyVectorByScalarSoA2D!(vSoA, sSoA) # multiplies a vector field by a scalar field
         vSoA.XValues .*= sSoA.Values
         vSoA.YValues .*= sSoA.Values
     end
 
-    function MultipyTensorSoA2D(grid, tSoAO, a) # multiplies a tensor field by single scalar
+    function MultiplyTensorSoA2D(grid, tSoAO, a) # multiplies a tensor field by single scalar
         XXValues = tSoAO.XXValues .* a
         XYValues = tSoAO.XYValues .* a
         YXValues = tSoAO.YXValues .* a
@@ -380,7 +380,7 @@ module MathFunctions
         return TensorSoA2D(XXValues, XYValues, YXValues, YYValues)
     end
 
-    function MultipyTensorByScalarSoA2D(grid, tSoAO, sSoA) # multiplies a tensor field by a scalar field
+    function MultiplyTensorByScalarSoA2D(grid, tSoAO, sSoA) # multiplies a tensor field by a scalar field
         XXValues = tSoAO.XXValues .* sSoA.Values
         XYValues = tSoAO.XYValues .* sSoA.Values
         YXValues = tSoAO.YXValues .* sSoA.Values
@@ -388,7 +388,7 @@ module MathFunctions
         return TensorSoA2D(XXValues, XYValues, YXValues, YYValues)
     end
 
-    function MultipyLargeTensorSoA2D(grid, tSoAO, a)
+    function MultiplyLargeTensorSoA2D(grid, tSoAO, a)
         tSoA = LargeTensorSoA2D(grid, tSoAO.nR, tSoAO.nC)
         for r = 1:tSoA.nR, c = 1:tSoA.nC
             aInd = LargeTensorListIndex(r, c, tSoA.nC)
@@ -397,37 +397,37 @@ module MathFunctions
         return tSoA
     end
 
-    function MultipyScalarSoA2D!(sSoA, a)
+    function MultiplyScalarSoA2D!(sSoA, a)
         sSoA.Values .*= a
     end
 
-    function MultipyVectorSoA2D!(vSoA, a)
+    function MultiplyVectorSoA2D!(vSoA, a)
         vSoA.XValues .*= a
         vSoA.YValues .*= a
     end
 
-    function MultipyTensorSoA2D!(tSoA, a)
+    function MultiplyTensorSoA2D!(tSoA, a)
         tSoA.XXValues .*= a
         tSoA.XYValues .*= a
         tSoA.YXValues .*= a
         tSoA.YYValues .*= a
     end
 
-    function MultipyTensorByScalarSoA2D!(tSoA, sSoA) # multiplies a tensor field by a scalar field
+    function MultiplyTensorByScalarSoA2D!(tSoA, sSoA) # multiplies a tensor field by a scalar field
         tSoA.XXValues .*= sSoA.Values
         tSoA.XYValues .*= sSoA.Values
         tSoA.YXValues .*= sSoA.Values
         tSoA.YYValues .*= sSoA.Values
     end
 
-    function MultipyLargeTensorSoA2D!(tSoA, a)
+    function MultiplyLargeTensorSoA2D!(tSoA, a)
         for r = 1:tSoA.nR, c = 1:tSoA.nC
             aInd = LargeTensorListIndex(r, c, tSoA.nC)
             tSoA.ValuesVector[aInd] .*= a
         end
     end
 
-    function MultipyLargeTensorByScalarSoA2D!(tSoA, sSoA)
+    function MultiplyLargeTensorByScalarSoA2D!(tSoA, sSoA)
         for r = 1:tSoA.nR, c = 1:tSoA.nC
             aInd = LargeTensorListIndex(r, c, tSoA.nC)
             tSoA.ValuesVector[aInd] .*= sSoA.Values
@@ -624,13 +624,15 @@ module MathFunctions
     @inline function  FiniteDifferenceCyl(field)
         M, N = size(field)
         result = similar(field)
-    
-        @inbounds for i in 2:M-1
-            result[i, 1] = (field[i+1, 1] - field[i-1, 1]) 
+        
+        @inbounds for j in 1:N
+            @inbounds for i in 2:M-1
+                result[i, j] = (field[i+1, j] - field[i-1, j]) 
+            end
+            # Boundary conditions (assuming periodic boundary conditions)
+            result[1, j] = (field[2, j] - field[M, j]) 
+            result[M, j] = (field[1, j] - field[M-1, j]) 
         end
-        # Boundary conditions (assuming periodic boundary conditions)
-        result[1, 1] = (field[2, 1] - field[M, 1]) 
-        result[M, 1] = (field[1, 1] - field[M-1, 1]) 
     
         return result
     end
@@ -639,14 +641,16 @@ module MathFunctions
     @inline function FiniteSecondDifferenceCyl(field) # these don't include the discretization length
         M, N = size(field)
         result = similar(field)
-    
-        @inbounds for i in 2:M-1
-            result[i, 1] = (field[i+1, 1] + field[i-1, 1] - 2 * field[i,1]) 
+        
+        @inbounds for j in 1:N
+            @inbounds for i in 2:M-1
+                result[i, j] = (field[i+1, j] + field[i-1, j] - 2 * field[i,j]) 
+            end
+            # Boundary conditions (assuming periodic boundary conditions)
+            result[1, j] = (field[2, j] + field[M, j] - 2 * field[1,j]) 
+            result[M, j] = (field[1, j] + field[M-1, j] - 2 * field[M,j]) 
         end
-        # Boundary conditions (assuming periodic boundary conditions)
-        result[1, 1] = (field[2, 1] + field[M, 1] - 2 * field[1,1]) 
-        result[M, 1] = (field[1, 1] + field[M-1, 1] - 2 * field[M,1]) 
-    
+        
         return result
     end
 
@@ -720,9 +724,9 @@ module MathFunctions
 
     @inline function ExpandForGhostPointsCylSoA(vals)
         newVals = Array{Float64}(undef, (size(vals)[1] + 2, size(vals)[2]))
-        newVals[2:end-1,1] .= @view(vals[:,1])
-        newVals[1,1] = vals[2,1]
-        newVals[end,1] = vals[end-1,1]
+        newVals[2:end-1,1:end] .= @view(vals[:,1:end])
+        newVals[1,1:end] .= vals[2,1:end]
+        newVals[end,1:end] .= vals[end-1,1:end]
         return newVals
     end
 

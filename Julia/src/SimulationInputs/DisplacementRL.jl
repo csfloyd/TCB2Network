@@ -10,14 +10,14 @@ inputFile = string(args[1])
 outputDir = string(args[2])
 
 # set default parameters
-parameters = Dict(
+defaultParams = Dict(
 # grid params
 "domainType" => "cyl",
-"Nx" => 150,
+"Nx" => 100,
 "Ny" => 1,
 "dx" => 1.0,
 "dt" => 2e-4,
-"ndt" => 1000,
+"ndt" => 2500, #2000,
 "timeStride" => 1,
 "startCollecting" => 0,
 "seed" => 0,
@@ -30,45 +30,47 @@ parameters = Dict(
 "bcRAD_Y" => "neu",
 
 # chemical parameters
+"kFac" => 1.0,
 "kAct" => 5e1,
-"kInact" => 5e0,
+"kInact" => 2e1, 
 "kTrap" => 3e2,
 "kRel" => 7e2,
-"kIBind" => 1e-1,
-"kIUnbind" => 1e0,
-"kABind" => 1e-1,
+"kIBind" => 2e-1, # 2
+"kIUnbind" => 0.5e0,
+"kABind" => 2e-1, # 2
 "kAUnbind" => 0,
-"beta" => 1.0,
+"beta" => 0.2,
 "CSat" => 5,
     
-"DT" => 1,
-"DD" => 25,
-"DC" => 500,
+"DT" => 10, # 8
+"DD" => 100, # 120
+"DC" => 300,
     
-"CDI0" => 2.5,
+"CDI0" => 1.25, #2.5,
 "CDA0" => 0,
-"CBI0" => 0.1,
+"CBI0" => 0.05,
 "CBA0" => 0,
 "CC0" => 0,
 "CD0" => 20,
 "CDst0" => 20,
 
-"lambda0" => 3.0,
-"mu0" => 3.0,
+"lambda0" => 15.0,
+"mu0" => 15.0,
 "gMin" => 0.5,
     
 ## reward params
-"ust" => -0.25,
-"rst" => 75,
+"ust" => -0.5,
+"rst" => 50,
+"ks" => 1e-2,
 
 ## parameters of the Environment object
-"nSteps" => 100, # number of steps in one episode
-"bounds" => [1.0, 15.0, 5.0], # range of allowed increments of the activityCoefficients
+"nSteps" => 50, # number of steps in one episode
+"bounds" => [20, 0.15], #[20, 2.0], # range of allowed increments of the activityCoefficients
 "rewP" => 1, # strength of the penalty used to compute the reward
     
 ## parameters of the Experiment object
-"eps_or_hrs" => "eps", # terminate after nEpisodes epsiodes ("eps") or nEpisodes hours ("hrs")
-"nEpisodes" => 1000, # number of episodes / hours
+"eps_or_hrs" => "hrs", # terminate after nEpisodes epsiodes ("eps") or nEpisodes hours ("hrs")
+"nEpisodes" => 24, # number of episodes / hours
 "stepStride" => 1,
 "episodeStride" => 5,
 "stateTrajStride" => 5,
@@ -76,17 +78,18 @@ parameters = Dict(
 "updateFreq" => 10, # how many steps to do before updating the network parameters 
 "netLayers" => 1,
 "netWidth" => 32,
-"gamma" => 0.99f0, 
-"rho" => 0.9995f0,
+"gamma" => 0.99f0, #0.99f0, 
+"rho" => 0.995f0,
+"adamRate" => 5e-4,
     
 "act_limit" => 1.0,
-"act_noise" => 0e-1,
+"act_noise" => 5e-2,
 "annealBool" => false,
-"annealTime" => 250,
+"annealTime" => 1000,
 
 ## restart parameters
 "restartBool" => false, # whether to load experiment from a previous SavedData file or not 
-"parentDirectoryName" => "Dirs_ks_cutoff", # the name of the parent folder containing all the param trials
+"parentDirectoryName" => "Dirs_seed_ks", # the name of the parent folder containing all the param trials
 "restartLabel" => "_R" # the label which has been appended to parentDirectoryName directory manually by the user
 );
 

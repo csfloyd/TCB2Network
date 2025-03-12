@@ -5,6 +5,8 @@ using IntervalSets
 include("SimMainRL.jl")
 using .SimMainRL
 
+include("LightControl.jl")
+
 export TCB2Env
 
 ########################################################################################
@@ -82,22 +84,24 @@ function RLBase.is_terminated(env::TCB2Env)
     end 
 end 
 
-function pmVec(agentHandler) # points from plus to minus
-    return agentHandler.MinusDefects[1].Position .- agentHandler.PlusDefects[1].Position
-end 
 
-function GetState(env) 
+function GetState(env; last = false) 
 
     rst = env.rP.rst
-    u = env.sS.dF.uxSoA.Values[rst]
-    du = u - env.rP.ust
-    duS = du / env.rP.ust 
+    if last
+        u = env.sS.lastdF.uxSoA.Values[rst]
+    else
+        u = env.sS.dF.uxSoA.Values[rst]
+    end
+
+    du = u
+    duS = u
 
     return (du, duS) # return raw and scaled version
 end
 
 function RLBase.state(env::TCB2Env)
-    return GetState(env)[2]
+    return [(GetState(env)[2] - env.rP.ust)] ./ env.rP.ust
 end
 
 RLBase.state_space(env::TCB2Env, ::Observation{Any}) = Space(vcat(
@@ -111,14 +115,17 @@ function gaussian(r, r0, s)
 end
 
 gaussianSoAFunc2D(grid, a, r0, s) = ScalarSoA2D([a * gaussian(r, r0, s) for r in 1:grid.Nx, y in 1:1])
+tanhSoAFunc2D(grid, a, r0, s) = ScalarSoA2D([a * LightControl.spaceFunc(r, r0, s) for r in 1:grid.Nx, y in 1:1])
 
 function UpdateLightFromAction!(env, action, bounds)
 
-    a = bounds[1] * 0.5 * (action[1] + 1.0)
-    r0 = env.rP.rst + bounds[2] * 0.5 * (action[2] + 1.0)
-    s = bounds[2] * 0.5 * (action[3] + 1.0)
 
-    env.sS.gammaSoA = gaussianSoAFunc2D(env.sP.grid, a, r0, s)
+    r0 = env.rP.rst + bounds[1] * action[1]
+    a = bounds[2] * 0.5 * (action[2] + 1.0) + 0.01
+    s = 5 #bounds[3] * (0.5) * (action[3] + 1.0) + 5.0 # range from 5 to bounds
+
+    #env.sS.gammaSoA = gaussianSoAFunc2D(env.sP.grid, a, r0, s)
+    env.sS.gammaSoA = tanhSoAFunc2D(env.sP.grid, a, r0, s)
 end
 
     
@@ -137,11 +144,19 @@ function _step!(env::TCB2Env) # wrap SimStep and check number of defects
     env.t += 1
 end
 
+function PredictedState(p, env)
+    return p + env.sP.ndt * (- env.rP.ks * (p - env.rP.ust)) 
+end 
 
 function RLBase.reward(env::TCB2Env) 
 
-    du = GetState(env)[1]
+    # u = GetState(env)[1]
+    # env.reward = - env.rewP * (u - env.rP.ust)^2
 
-    env.reward = - env.rewP * du^2
+    lastu = GetState(env; last = true)[1]
+    u = GetState(env)[1]
+    pred = PredictedState(lastu, env)
+    env.reward = - env.rewP * (u - pred)^2
+    
 end 
 
